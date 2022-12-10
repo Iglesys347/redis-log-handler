@@ -1,2 +1,3 @@
 # redis-log-handler
-Log handler to forward lors to Redis
+
+Log handler to forward logs to Redis
