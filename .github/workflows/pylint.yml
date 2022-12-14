@@ -25,4 +25,4 @@ jobs:
         pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files 'rlh/*.py')
+        pylint --fail-under=8 $(git ls-files 'rlh/*.py')
