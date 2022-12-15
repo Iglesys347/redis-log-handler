@@ -1,0 +1,36 @@
+name: Publish package to Pypi
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read #  to fetch code (actions/checkout)
+
+jobs:
+  build_and_package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: install python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      - name: Install dev tools
+        run: |
+          pip install -r dev_requirements.txt
+          pip install twine wheel
+      - name: Build package
+        run: |
+          python setup.py build
+          python setup.py sdist bdist_wheel
+      - name: Publish to Test Pypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+      # NOT PUBLISHING TO THE REAL Pypi FOR THE MOMENT
+      # - name: Publish to Pypi
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     password: ${{ secrets.PYPI_API_TOKEN }}
