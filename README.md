@@ -2,12 +2,8 @@
 
 Log handler to forward logs to Redis
 
-<center>
-
 | [Installation](#installation) | [Usage](#usage) |
 | :---------------------------: | :-------------: |
-
-</center>
 
 ## Installation
 
