@@ -24,13 +24,12 @@ jobs:
         run: |
           python setup.py build
           python setup.py sdist bdist_wheel
-      - name: Publish to Test Pypi
+      # - name: Publish to Test Pypi
+      #  uses: pypa/gh-action-pypi-publish@release/v1
+      #  with:
+      #    password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      #    repository_url: https://test.pypi.org/legacy/
+      - name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
-      # NOT PUBLISHING TO THE REAL Pypi FOR THE MOMENT
-      # - name: Publish to Pypi
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     password: ${{ secrets.PYPI_API_TOKEN }}
+          password: ${{ secrets.PYPI_API_TOKEN }}
