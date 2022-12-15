@@ -2,7 +2,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="redis-log-handler",
+    name="redis-logs",
     description="Python log handler to forward logs to Redis database",
     long_description=open("README.md").read().strip(),
     long_description_content_type="text/markdown",
@@ -17,7 +17,7 @@ setup(
     ),
     url="https://github.com/Iglesys347/redis-log-handler",
     project_urls={
-        "Documentation": "TODO:add link to readthedoc",
+        # "Documentation": "TODO:add link to readthedoc",
         "Changes": "https://github.com/Iglesys347/redis-log-handler/releases",
         "Code": "https://github.com/Iglesys347/redis-log-handler",
         "Issue tracker": "https://github.com/Iglesys347/redis-log-handler/issues",
