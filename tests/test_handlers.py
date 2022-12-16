@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from logging import LogRecord
 
@@ -5,12 +7,16 @@ from redis import Redis
 
 from rlh import RedisLogHandler
 
+# default values for Redis
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
+
 
 class TestRedisLogHandler:
 
     @pytest.fixture
     def redis_client(self):
-        return Redis(host="localhost", port=6379)
+        return Redis(host=REDIS_HOST, port=REDIS_PORT)
 
     @pytest.fixture
     def log_record(self):
