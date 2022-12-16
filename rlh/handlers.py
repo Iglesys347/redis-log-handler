@@ -30,14 +30,24 @@ class RedisLogHandler(logging.Handler):
         This method is intended to be implemented by subclasses and so raises a NotImplementedError.
     """
 
-    def __init__(self, redis_client=None, redis_host="localhost", redis_port=6379, **redis_extra_args) -> None:
+    def __init__(self, redis_client=None, check_conn=True, **redis_args) -> None:
         super().__init__()
 
         if redis_client is not None:
             self.redis = redis_client
         else:
-            self.redis = redis.Redis(redis_host, redis_port,
-                                     **redis_extra_args)
+            try:
+                self.redis = redis.Redis(**redis_args)
+            except TypeError as err:
+                raise TypeError(
+                    "One of the argument passed to Redis is not valid") from err
+
+        if check_conn:
+            # trying to ping Redis DB
+            try:
+                self.redis.ping()
+            except redis.exceptions.ConnectionError as err:
+                raise ConnectionError("Unable to ping Redis DB") from err
 
     def emit(self, record: logging.LogRecord) -> None:
         raise NotImplementedError(
@@ -69,9 +79,9 @@ class RedisStreamLogHandler(RedisLogHandler):
     redis streams: https://redis.io/docs/data-types/streams/
     """
 
-    def __init__(self, redis_client=None, redis_host="localhost", redis_port=6379, stream_name="logs",
-                 fields=None, as_pkl=False, **redis_extra_args) -> None:
-        super().__init__(redis_client, redis_host, redis_port, **redis_extra_args)
+    def __init__(self, redis_client=None, check_conn=True, stream_name="logs",
+                 fields=None, as_pkl=False, **redis_args) -> None:
+        super().__init__(redis_client, check_conn, **redis_args)
 
         self.stream_name = stream_name
         self.as_pkl = as_pkl
