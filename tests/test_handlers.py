@@ -55,8 +55,8 @@ class TestRedisLogHandler:
         # but not checking connection
         RedisLogHandler(check_conn=False, host="redis", port=6969)
 
-    def test_emit_not_implemented(self, log_record):
+    def test_emit_not_implemented(self, redis_client, log_record):
         # Create a RedisLogHandler instance
-        handler = RedisLogHandler()
+        handler = RedisLogHandler(redis_client=redis_client)
         with pytest.raises(NotImplementedError):
             handler.emit(log_record)
