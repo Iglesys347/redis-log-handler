@@ -1,26 +1,41 @@
 import os
 
 import pytest
-from logging import LogRecord
+import logging
+import pickle
 
 from redis import Redis
 
-from rlh import RedisLogHandler
+from rlh import RedisLogHandler, RedisStreamLogHandler
+from rlh.handlers import DEFAULT_FIELDS
 
 # default values for Redis
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
 
 
+@pytest.fixture
+def redis_client():
+    client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    # Making sure the stream is empty
+    client.delete("logs")
+    return client
+
+
+@pytest.fixture
+def log_record():
+    return logging.LogRecord("", 0, "", 0, None, None, None)
+
+
+@pytest.fixture
+def logger():
+    logging.basicConfig()
+    logger = logging.getLogger('test_rlh')
+    logger.setLevel(logging.INFO)
+    return logger
+
+
 class TestRedisLogHandler:
-
-    @pytest.fixture
-    def redis_client(self):
-        return Redis(host=REDIS_HOST, port=REDIS_PORT)
-
-    @pytest.fixture
-    def log_record(self):
-        return LogRecord("", 0, "", 0, None, None, None)
 
     def test_init_redis_client(self, redis_client):
         # Create a RedisLogHandler instance with the Redis client
@@ -60,3 +75,94 @@ class TestRedisLogHandler:
         handler = RedisLogHandler(redis_client=redis_client)
         with pytest.raises(NotImplementedError):
             handler.emit(log_record)
+
+
+class TestRedisStreamLogHandler:
+
+    def test_init_default_params(self):
+        # Create a RedisStreamLogHandler instance with default params
+        handler = RedisStreamLogHandler()
+        # Assert that the attributes of the handler are set
+        assert handler.stream_name == "logs"
+        assert handler.fields == DEFAULT_FIELDS
+        assert not handler.as_pkl
+
+    def test_init_custom_params(self):
+        # Create a RedisStreamLogHandler instance with custom fields
+        handler = RedisStreamLogHandler(stream_name="test", fields=["lineno", "module"],
+                                        as_pkl=True)
+        # Assert that the attributes of the handler is correctly set
+        assert handler.stream_name == "test"
+        assert handler.fields == ["lineno", "module"]
+        assert handler.as_pkl
+
+    @pytest.mark.parametrize("input,expected", [
+        # only valid fields
+        (["msg", "levelno"], ["msg", "levelno"]),
+        # empty fields
+        ([], DEFAULT_FIELDS),
+        # only invalid fields
+        (["invalid_field_1", "invalid_field_2"], DEFAULT_FIELDS),
+        # mixed invalid and valid fields
+        (["msg", "levelno", "invalid_field_1", "invalid_field_2"], ["msg", "levelno"])
+    ])
+    def test_emit_log_fields(self, redis_client, logger, input, expected):
+        # Create a RedisStreamLogHandler instance with custom fields
+        handler = RedisStreamLogHandler(redis_client=redis_client,
+                                        fields=input)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Testing log
+        logger.info('Testing my redis logger')
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("logs", "-", "+")[-1]
+
+        # Retrieve the data stored in Redis
+        data = res[1]
+
+        assert list(data.keys()) == expected
+
+    def test_emit_as_pkl(self, logger):
+        # Define a Redis client with 'decode_responses=False'
+        redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT)
+        # Create a RedisStreamLogHandler instance with as_pkl argument
+        handler = RedisStreamLogHandler(redis_client=redis_client, as_pkl=True)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Testing log
+        logger.info('Testing my redis logger')
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("logs", "-", "+")[-1]
+
+        # Retrieve the data stored in Redis
+        data = res[1]
+
+        # Load the pickle log
+        log = pickle.loads(data[b"pkl"])
+
+        # We cannot perform a deep test as we cannot retrieve the LogRecord emitted
+        assert log.msg == 'Testing my redis logger'
+        assert log.levelname == 'INFO'
+
+    def test_emit_custom_stream_name(self, redis_client, logger):
+        # Create a RedisStreamLogHandler instance with custom stream_name
+        handler = RedisStreamLogHandler(redis_client=redis_client,
+                                        stream_name="test_name")
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Testing log
+        logger.info('Testing my redis logger')
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("test_name", "-", "+")[-1]
+
+        # Retrieve the data stored in Redis
+        data = res[1]
+
+        assert data["msg"] == 'Testing my redis logger'
+        assert data["levelname"] == "INFO"
