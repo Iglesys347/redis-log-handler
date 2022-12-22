@@ -102,7 +102,21 @@ class RedisStreamLogHandler(RedisLogHandler):
         if self.as_pkl:
             stream_entry = {"pkl": pickle.dumps(record)}
         else:
-            stream_entry = {field: getattr(record, field)
-                            for field in self.fields if hasattr(record, field)}
+            stream_entry = _make_fields(record, self.fields)
 
         self.redis.xadd(self.stream_name, stream_entry)
+
+
+def _make_fields(record, fields):
+    """
+    Return the fields dict for the log record.
+
+    If all the specified fields are invalid, use the default fields.
+    """
+    field_dict = {field: getattr(record, field)
+                  for field in fields if hasattr(record, field)}
+
+    if field_dict == {}:
+        return {field: getattr(record, field)
+                for field in DEFAULT_FIELDS if hasattr(record, field)}
+    return field_dict
