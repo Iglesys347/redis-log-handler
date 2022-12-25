@@ -205,13 +205,15 @@ class TestRedisPubSubLogHandler:
 
         # Add the handler to the logger
         logger.addHandler(handler)
+        
+        pubsub = redis_client.pubsub()
+        # Subscribe to channel
+        pubsub.psubscribe("logs")
+        
         # Testing log
         logger.info('Testing my redis logger')
 
         # Retrieve the last log saved in Redis
-        pubsub = redis_client.pubsub()
-        # Subscribe to channel
-        pubsub.psubscribe("logs")
         mess = pubsub.get_message(ignore_subscribe_messages=True)
         # Retrieve the data stored in Redis
         data = json.loads(mess["data"])
@@ -226,13 +228,15 @@ class TestRedisPubSubLogHandler:
 
         # Add the handler to the logger
         logger.addHandler(handler)
+        
+        pubsub = redis_client.pubsub()
+        # Subscribe to channel
+        pubsub.psubscribe("logs")
+        
         # Testing log
         logger.info('Testing my redis logger')
 
         # Retrieve the last log saved in Redis
-        pubsub = redis_client.pubsub()
-        # Subscribe to channel
-        pubsub.psubscribe("logs")
         mess = pubsub.get_message(ignore_subscribe_messages=True)
         # Retrieve the data stored in Redis
         data = mess["data"]
@@ -251,17 +255,18 @@ class TestRedisPubSubLogHandler:
 
         # Add the handler to the logger
         logger.addHandler(handler)
+        
+        pubsub = redis_client.pubsub()
+        # Subscribe to channel
+        pubsub.psubscribe("test_name")
+        
         # Testing log
         logger.info('Testing my redis logger')
 
         # Retrieve the last log saved in Redis
-        pubsub = redis_client.pubsub()
-        # Subscribe to channel
-        pubsub.psubscribe("test_name")
         mess = pubsub.get_message(ignore_subscribe_messages=True)
         # Retrieve the data stored in Redis
         data = json.loads(mess["data"])
 
         assert data["msg"] == 'Testing my redis logger'
         assert data["levelname"] == "INFO"
-
