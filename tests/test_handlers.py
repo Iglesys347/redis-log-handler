@@ -229,6 +229,8 @@ class TestRedisPubSubLogHandler:
         # Testing log
         logger.info('Testing my redis logger')
 
+        # Retrieve the last log saved in Redis
+        pubsub = redis_client.pubsub()
         # Subscribe to channel
         pubsub.psubscribe("logs")
         mess = pubsub.get_message(ignore_subscribe_messages=True)
@@ -252,6 +254,8 @@ class TestRedisPubSubLogHandler:
         # Testing log
         logger.info('Testing my redis logger')
 
+        # Retrieve the last log saved in Redis
+        pubsub = redis_client.pubsub()
         # Subscribe to channel
         pubsub.psubscribe("test_name")
         mess = pubsub.get_message(ignore_subscribe_messages=True)
