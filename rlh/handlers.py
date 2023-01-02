@@ -149,8 +149,11 @@ class RedisPubSubLogHandler(RedisLogHandler):
             - Otherwise we use the different fields as keys and their associated value
             in the record as the value (default fields are used if not specified)
         """
-        stream_entry = _make_entry(record, self.fields, self.as_pkl)
-        self.redis.publish(self.channel_name, json.dumps(stream_entry))
+        stream_entry = _make_entry(record, self.fields, self.as_pkl, raw_pkl=True)
+        if self.as_pkl:
+            self.redis.publish(self.channel_name, stream_entry)
+        else:
+            self.redis.publish(self.channel_name, json.dumps(stream_entry))
 
 
 def _make_fields(record, fields):
@@ -168,7 +171,9 @@ def _make_fields(record, fields):
     return field_dict
 
 
-def _make_entry(record, fields, as_pkl):
+def _make_entry(record, fields, as_pkl, raw_pkl=False):
     if as_pkl:
+        if raw_pkl:
+            return pickle.dumps(record)
         return {"pkl": pickle.dumps(record)}
     return _make_fields(record, fields)
