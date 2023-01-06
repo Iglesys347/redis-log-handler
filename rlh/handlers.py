@@ -5,6 +5,7 @@ to a Redis database.
 
 import logging
 import pickle
+import json
 
 import redis
 
@@ -99,12 +100,60 @@ class RedisStreamLogHandler(RedisLogHandler):
             - Otherwise we use the different fields as keys and their associated value
             in the record as the value
         """
-        if self.as_pkl:
-            stream_entry = {"pkl": pickle.dumps(record)}
-        else:
-            stream_entry = _make_fields(record, self.fields)
-
+        stream_entry = _make_entry(record, self.fields, self.as_pkl)
         self.redis.xadd(self.stream_name, stream_entry)
+
+
+class RedisPubSubLogHandler(RedisLogHandler):
+    """
+    Handler used to publish logs to a Redis pub/sub channel.
+
+    Attributes
+    ----------
+    redis : redis.Redis
+        The Redis client.
+    channel_name : str
+        The name of the Redis pub/sub channel.
+    fields : list(str)
+        The list of logs fields to forward.
+    as_pkl : bool
+        If true, the logs are written as pickle format in the stream.
+
+    Methods
+    -------
+    emit(record: logging.LogRecord)
+        Publish log to the Redis pub/sub channel.
+
+    See also
+    --------
+    redis streams: https://redis.io/docs/data-types/streams/
+    """
+
+    def __init__(self, redis_client=None, check_conn=True, channel_name="logs",
+                 fields=None, as_pkl=False, **redis_args) -> None:
+        super().__init__(redis_client, check_conn, **redis_args)
+
+        self.channel_name = channel_name
+        self.as_pkl = as_pkl
+
+        self.fields = fields if fields is not None else DEFAULT_FIELDS
+
+    def emit(self, record):
+        """
+        Publish the log record in the Redis pub/sub channel.
+
+        Every time a log is emitted, an entry is published on the channel.
+        This entry is encoded as JSON such as:
+            - If `as_pkl` is set to true, the records are saved as their pickle format
+            with the key "pkl"
+            - Otherwise we use the different fields as keys and their associated value
+            in the record as the value (default fields are used if not specified)
+        """
+        stream_entry = _make_entry(record, self.fields, self.as_pkl, raw_pkl=True)
+        if self.as_pkl:
+            self.redis.publish(self.channel_name, stream_entry)
+        else:
+            self.redis.publish(self.channel_name, json.dumps(stream_entry))
 
 
 def _make_fields(record, fields):
@@ -120,3 +169,11 @@ def _make_fields(record, fields):
         return {field: getattr(record, field)
                 for field in DEFAULT_FIELDS if hasattr(record, field)}
     return field_dict
+
+
+def _make_entry(record, fields, as_pkl, raw_pkl=False):
+    if as_pkl:
+        if raw_pkl:
+            return pickle.dumps(record)
+        return {"pkl": pickle.dumps(record)}
+    return _make_fields(record, fields)
