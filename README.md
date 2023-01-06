@@ -1,9 +1,9 @@
 # redis-log-handler
 
-Log handler to forward logs to Redis
+Log handler to forward logs to Redis.
 
-| [Installation](#installation) | [Usage](#usage) |
-| :---------------------------: | :-------------: |
+| [Installation](#installation) | [Usage](#usage) | [Handler classes](#handlers-classes) |
+| :---------------------------: | :-------------: | :----------------------------------: |
 
 ## Installation
 
@@ -114,3 +114,20 @@ logger.addHandler(handler)
 ```
 
 This can be useful if you need to re-use the logs with another python program.
+
+## Handlers classes
+
+Currently `rlh` implements two classes of handlers:
+
+- [`RedisStreamLogHandler`](#redisstreamloghandler)
+- [`RedisPubSubLogHandler`](#redispubsubloghandler)
+
+### `RedisStreamLogHandler`
+
+Handler used to forward logs to a [Redis stream](https://redis.io/docs/data-types/streams/).
+
+### `RedisPubSubLogHandler`
+
+Handler used to publish logs to a [Redis pub/sub](https://redis.io/docs/manual/pubsub/) channel.
+
+> :warning: Before using `RedisPubSubLogHandler`, make sure to define at least one listener to the channel, otherwise the logs emitted will be lost
