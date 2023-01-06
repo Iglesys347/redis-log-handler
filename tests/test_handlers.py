@@ -1,47 +1,11 @@
-import os
-import time
+import json
+import pickle
 
 import pytest
-import logging
-import pickle
-import json
-
-from redis import Redis
 
 from rlh import RedisLogHandler, RedisStreamLogHandler, RedisPubSubLogHandler
 from rlh.handlers import DEFAULT_FIELDS
 
-# default values for Redis
-REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
-
-
-@pytest.fixture
-def redis_client():
-    client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-    # Making sure the stream is empty
-    for key in client.scan_iter("test*"):
-        client.delete(key)
-    return client
-
-
-@pytest.fixture
-def log_record():
-    return logging.LogRecord("", 0, "", 0, None, None, None)
-
-
-@pytest.fixture
-def logger():
-    logging.basicConfig()
-    logger = logging.getLogger('test_rlh')
-    logger.setLevel(logging.INFO)
-    return logger
-
-def new_logger():
-    logging.basicConfig()
-    logger = logging.getLogger('test_rlh')
-    logger.setLevel(logging.INFO)
-    return logger
 
 class TestRedisLogHandler:
 
@@ -132,12 +96,10 @@ class TestRedisStreamLogHandler:
 
         assert list(data.keys()) == expected
 
-    def test_emit_as_pkl(self, logger):
-        # Define a Redis client with 'decode_responses=False'
-        redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT)
+    def test_emit_as_pkl(self, redis_client_no_decode, logger):
         # Create a RedisStreamLogHandler instance with as_pkl argument
-        handler = RedisStreamLogHandler(redis_client=redis_client, as_pkl=True,
-                                        stream_name="test_logs")
+        handler = RedisStreamLogHandler(redis_client=redis_client_no_decode,
+                                        as_pkl=True, stream_name="test_logs")
 
         # Add the handler to the logger
         logger.addHandler(handler)
@@ -145,7 +107,7 @@ class TestRedisStreamLogHandler:
         logger.info('Testing my redis logger')
 
         # Retrieve the last log saved in Redis
-        res = redis_client.xrange("test_logs", "-", "+")[-1]
+        res = redis_client_no_decode.xrange("test_logs", "-", "+")[-1]
 
         # Retrieve the data stored in Redis
         data = res[1]
@@ -213,42 +175,40 @@ class TestRedisPubSubLogHandler:
 
         # Add the handler to the logger
         logger.addHandler(handler)
-        
+
         p = redis_client.pubsub()
         # Subscribe to channel
         p.subscribe("test_logs")
-        
-        assert p.get_message(ignore_subscribe_messages=True) is None
+
+        # Retrieving subscribe message
+        assert p.get_message(timeout=10)["type"] == "subscribe"
 
         # Testing log
         logger.info('Testing my redis logger')
         # Removing the handler from the logger
         logger.handlers.clear()
 
-        # Sleeping for 1 sec before retrieving the log
-        time.sleep(1)
         # Retrieve the last log saved in Redis
-        mess = p.get_message(ignore_subscribe_messages=True, timeout=1)
+        mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
         # Retrieve the data stored in Redis
         data = json.loads(mess["data"])
 
         assert list(data.keys()) == expected
 
-    def test_emit_as_pkl(self, logger):
-        # Define a Redis client with 'decode_responses=False'
-        redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT)
+    def test_emit_as_pkl(self, redis_client_no_decode, logger):
         # Create a RedisPubSubLogHandler instance with as_pkl argument
-        handler = RedisPubSubLogHandler(redis_client=redis_client, as_pkl=True,
+        handler = RedisPubSubLogHandler(redis_client=redis_client_no_decode, as_pkl=True,
                                         channel_name="test_logs")
-        
+
         # Add the handler to the logger
         logger.addHandler(handler)
-        
-        p = redis_client.pubsub()
+
+        p = redis_client_no_decode.pubsub()
         # Subscribe to channel
         p.subscribe("test_logs")
-        
-        assert p.get_message(ignore_subscribe_messages=True) is None
+
+        # Retrieving subscribe message
+        assert p.get_message(timeout=10)["type"] == "subscribe"
 
         # Testing log
         logger.info('Testing my redis logger')
@@ -256,9 +216,9 @@ class TestRedisPubSubLogHandler:
         logger.handlers.clear()
 
         # Sleeping for 1 sec before retrieving the log
-        time.sleep(1)
+        # time.sleep(1)
         # Retrieve the last log saved in Redis
-        mess = p.get_message(ignore_subscribe_messages=True, timeout=1)
+        mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
         # Retrieve the data stored in Redis
         data = mess["data"]
 
@@ -268,4 +228,3 @@ class TestRedisPubSubLogHandler:
         # We cannot perform a deep test as we cannot retrieve the LogRecord emitted
         assert log.msg == 'Testing my redis logger'
         assert log.levelname == 'INFO'
-
