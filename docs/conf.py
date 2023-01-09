@@ -77,7 +77,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
     'redis': ('https://redis-py.readthedocs.io/en/stable/', None),
-    'logging.LogRecord': ('https://docs.python.org/3/library/logging.html#logrecord-objects', None)
+    # 'logging.LogRecord': ('https://docs.python.org/3/library/logging.html#logrecord-objects', None)
 }
 intersphinx_disabled_domains = ['std']
 
