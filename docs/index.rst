@@ -11,10 +11,25 @@ Welcome to redis-log-handler's documentation!
    :caption: Contents:
 
 
+Installation
+************
 
-Indices and tables
-==================
+Install the package `redis-logs` using `pip`:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. code-block:: bash
+
+   pip install redis-logs
+
+You can then import the handlers from `rlh` module, for example:
+
+.. code-block:: python
+
+   from rlh import RedisStreamLogHandler
+
+
+Module Documentation
+********************
+.. toctree::
+   :maxdepth: 1
+
+   handlers
