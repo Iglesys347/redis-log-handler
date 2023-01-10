@@ -97,10 +97,9 @@ class RedisStreamLogHandler(RedisLogHandler):
         Every time a log is emitted, an entry is inserted in the stream.
         This entry is a dict that has the following format:
 
-        - If `as_pkl` is set to true, the records are saved as their pickle format
+            - If `as_pkl` is set to true, the records are saved as their pickle format
         with the key "pkl"
-
-        - Otherwise we use the different fields as keys and their associated value
+            - Otherwise we use the different fields as keys and their associated value
         in the record as the value
 
         """
@@ -149,10 +148,9 @@ class RedisPubSubLogHandler(RedisLogHandler):
         Every time a log is emitted, an entry is published on the channel.
         This entry is encoded as JSON such as:
 
-        - If `as_pkl` is set to true, the records are saved as their pickle format
+            - If `as_pkl` is set to true, the records are saved as their pickle format
         with the key "pkl"
-
-        - Otherwise we use the different fields as keys and their associated value
+            - Otherwise we use the different fields as keys and their associated value
         in the record as the value (default fields are used if not specified)
 
         """
