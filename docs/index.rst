@@ -11,6 +11,22 @@ Welcome to redis-log-handler's documentation!
    :caption: Contents:
 
 
+Installation
+************
+
+Install the package `redis-logs` using `pip`:
+
+.. code-block:: bash
+
+   pip install redis-logs
+
+You can then import the handlers from `rlh` module, for example:
+
+.. code-block:: python
+
+   from rlh import RedisStreamLogHandler
+
+
 Basic example
 *************
 
@@ -29,22 +45,6 @@ Setup log forwarding to a redis stream:
    logger.addHandler(handler)
 
 After that, all the logs emitted with the logger will be forwarded to a Redis Stream; by default the logs are forwarded to a Redis instance running at localhost:6379 in a stream named logs.
-
-
-Installation
-************
-
-Install the package `redis-logs` using `pip`:
-
-.. code-block:: bash
-
-   pip install redis-logs
-
-You can then import the handlers from `rlh` module, for example:
-
-.. code-block:: python
-
-   from rlh import RedisStreamLogHandler
 
 
 Module Documentation
