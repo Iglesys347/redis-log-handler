@@ -51,7 +51,6 @@ class RedisLogHandler(logging.Handler):
                 raise ConnectionError("Unable to ping Redis DB") from err
 
     def emit(self, record: logging.LogRecord) -> None:
-        super.emit()
         raise NotImplementedError(
             "emit must be implemented by RedisLogHandler subclasses")
 
