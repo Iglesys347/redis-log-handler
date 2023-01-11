@@ -11,6 +11,26 @@ Welcome to redis-log-handler's documentation!
    :caption: Contents:
 
 
+Basic example
+*************
+
+Setup log forwarding to a redis stream:
+
+.. code-block:: python
+
+   from rlh import RedisStreamLogHandler
+
+   # define your logger
+   logger = logging.getLogger('my_app')
+
+   # define the Redis log handler
+   handler = RedisStreamLogHandler()
+   # add the handler to the logger
+   logger.addHandler(handler)
+
+After that, all the logs emitted with the logger will be forwarded to a Redis Stream; by default the logs are forwarded to a Redis instance running at localhost:6379 in a stream named logs.
+
+
 Installation
 ************
 
