@@ -95,13 +95,11 @@ class RedisStreamLogHandler(RedisLogHandler):
         Write the log record in the Redis stream.
 
         Every time a log is emitted, an entry is inserted in the stream.
-        This entry is a dict that has the following format:
-
-            - If `as_pkl` is set to true, the records are saved as their pickle format
-        with the key "pkl"
-            - Otherwise we use the different fields as keys and their associated value
-        in the record as the value
-
+        This entry is a dict whose format depends on the handler
+        attributes. If `as_pkl` is set to true, the records are saved as
+        their pickle format with the key "pkl". Otherwise we use the 
+        different fields as keys and their associated valuein the record
+        as the value.
         """
         stream_entry = _make_entry(record, self.fields, self.as_pkl)
         self.redis.xadd(self.stream_name, stream_entry)
@@ -146,13 +144,11 @@ class RedisPubSubLogHandler(RedisLogHandler):
         Publish the log record in the Redis pub/sub channel.
 
         Every time a log is emitted, an entry is published on the channel.
-        This entry is encoded as JSON such as:
-
-            - If `as_pkl` is set to true, the records are saved as their pickle format
-        with the key "pkl"
-            - Otherwise we use the different fields as keys and their associated value
-        in the record as the value (default fields are used if not specified)
-
+        This entry is encoded as JSON whose format depends on the handler
+        attributes. If `as_pkl` is set to true, the records are saved as
+        their pickle format with the key "pkl". Otherwise we use the
+        different fields as keys and their associated value in the record
+        as the value (default fields are used if not specified).
         """
         stream_entry = _make_entry(
             record, self.fields, self.as_pkl, raw_pkl=True)
