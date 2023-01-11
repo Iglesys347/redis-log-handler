@@ -31,7 +31,7 @@ class RedisLogHandler(logging.Handler):
         This method is intended to be implemented by subclasses and so raises a NotImplementedError.
     """
 
-    def __init__(self, redis_client=None, check_conn=True, **redis_args) -> None:
+    def __init__(self, redis_client: redis.Redis = None, check_conn: bool = True, **redis_args) -> None:
         super().__init__()
 
         if redis_client is not None:
@@ -75,13 +75,13 @@ class RedisStreamLogHandler(RedisLogHandler):
     emit(record: logging.LogRecord)
         Forward log to the Redis stream.
 
-    See also
-    --------
-    redis streams: https://redis.io/docs/data-types/streams/
+    Notes
+    -----
+    Redis streams: https://redis.io/docs/data-types/streams/
     """
 
-    def __init__(self, redis_client=None, check_conn=True, stream_name="logs",
-                 fields=None, as_pkl=False, **redis_args) -> None:
+    def __init__(self, redis_client: redis.Redis = None, check_conn: bool = True, stream_name: str = "logs",
+                 fields: list = None, as_pkl: bool = False, **redis_args) -> None:
         super().__init__(redis_client, check_conn, **redis_args)
 
         self.stream_name = stream_name
@@ -89,16 +89,16 @@ class RedisStreamLogHandler(RedisLogHandler):
 
         self.fields = fields if fields is not None else DEFAULT_FIELDS
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         """
         Write the log record in the Redis stream.
 
         Every time a log is emitted, an entry is inserted in the stream.
-        This entry is a dict that has the following format:
-            - If `as_pkl` is set to true, the records are saved as their pickle format
-            with the key "pkl"
-            - Otherwise we use the different fields as keys and their associated value
-            in the record as the value
+        This entry is a dict whose format depends on the handler
+        attributes. If `as_pkl` is set to true, the records are saved as
+        their pickle format with the key "pkl". Otherwise we use the 
+        different fields as keys and their associated valuein the record
+        as the value.
         """
         stream_entry = _make_entry(record, self.fields, self.as_pkl)
         self.redis.xadd(self.stream_name, stream_entry)
@@ -124,13 +124,13 @@ class RedisPubSubLogHandler(RedisLogHandler):
     emit(record: logging.LogRecord)
         Publish log to the Redis pub/sub channel.
 
-    See also
-    --------
-    redis streams: https://redis.io/docs/data-types/streams/
+    Notes
+    -----
+    Redis pub/sub: https://redis.io/docs/manual/pubsub/
     """
 
-    def __init__(self, redis_client=None, check_conn=True, channel_name="logs",
-                 fields=None, as_pkl=False, **redis_args) -> None:
+    def __init__(self, redis_client: redis.Redis = None, check_conn: bool = True, channel_name: str = "logs",
+                 fields: list = None, as_pkl: bool = False, **redis_args) -> None:
         super().__init__(redis_client, check_conn, **redis_args)
 
         self.channel_name = channel_name
@@ -138,18 +138,19 @@ class RedisPubSubLogHandler(RedisLogHandler):
 
         self.fields = fields if fields is not None else DEFAULT_FIELDS
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         """
         Publish the log record in the Redis pub/sub channel.
 
         Every time a log is emitted, an entry is published on the channel.
-        This entry is encoded as JSON such as:
-            - If `as_pkl` is set to true, the records are saved as their pickle format
-            with the key "pkl"
-            - Otherwise we use the different fields as keys and their associated value
-            in the record as the value (default fields are used if not specified)
+        This entry is encoded as JSON whose format depends on the handler
+        attributes. If `as_pkl` is set to true, the records are saved as
+        their pickle format with the key "pkl". Otherwise we use the
+        different fields as keys and their associated value in the record
+        as the value (default fields are used if not specified).
         """
-        stream_entry = _make_entry(record, self.fields, self.as_pkl, raw_pkl=True)
+        stream_entry = _make_entry(
+            record, self.fields, self.as_pkl, raw_pkl=True)
         if self.as_pkl:
             self.redis.publish(self.channel_name, stream_entry)
         else:
