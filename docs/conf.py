@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.pardir))
 project = 'redis-log-handler'
 copyright = '2023, Iglesys347'
 author = 'Iglesys347'
-release = '0.0.3-dev'
+release = '1.0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

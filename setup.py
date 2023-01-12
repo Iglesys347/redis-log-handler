@@ -8,7 +8,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords=["Redis", "logging"],
     license="MIT",
-    version="0.0.3",
+    version="1.0.0",
     packages=find_packages(
         include=[
             "rlh",
@@ -17,7 +17,7 @@ setup(
     ),
     url="https://github.com/Iglesys347/redis-log-handler",
     project_urls={
-        # "Documentation": "TODO:add link to readthedoc",
+        "Documentation": "https://redis-log-handler.readthedocs.io/en/latest",
         "Changes": "https://github.com/Iglesys347/redis-log-handler/releases",
         "Code": "https://github.com/Iglesys347/redis-log-handler",
         "Issue tracker": "https://github.com/Iglesys347/redis-log-handler/issues",
@@ -29,7 +29,7 @@ setup(
         "redis",
     ],
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
