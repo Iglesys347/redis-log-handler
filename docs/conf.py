@@ -26,7 +26,10 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
     'numpydoc',
+    'sphinx_rtd_theme',
 ]
 
 numpydoc_xref_param_type = True
