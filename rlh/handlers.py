@@ -31,7 +31,7 @@ class RedisLogHandler(logging.Handler):
         This method is intended to be implemented by subclasses and so raises a NotImplementedError.
     """
 
-    def __init__(self, redis_client: redis.Redis = None, check_conn: bool = True, **redis_args) -> None:
+    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1, check_conn: bool = True,  **redis_args) -> None:
         super().__init__()
 
         if redis_client is not None:
@@ -50,9 +50,25 @@ class RedisLogHandler(logging.Handler):
             except redis.exceptions.ConnectionError as err:
                 raise ConnectionError("Unable to ping Redis DB") from err
 
+        self.batch_size = batch_size
+        self.log_buffer = []
+
     def emit(self, record: logging.LogRecord) -> None:
         raise NotImplementedError(
             "emit must be implemented by RedisLogHandler subclasses")
+
+    def _buffer_emit(self):
+        raise NotImplemented(
+            "_buffer_emit must be implemented by RedisLogHandler subclasses")
+
+    def _check_buff_and_emit(self):
+        if len(self.log_buffer) >= self.batch_size:
+            self._buffer_emit()
+
+    def __del__(self):
+        """Make sure to add all remaining logs in buffer to Redis before object is destroyed."""
+        if self.log_buffer:
+            self._buffer_emit()
 
 
 class RedisStreamLogHandler(RedisLogHandler):
@@ -80,7 +96,7 @@ class RedisStreamLogHandler(RedisLogHandler):
     Redis streams: https://redis.io/docs/data-types/streams/
     """
 
-    def __init__(self, redis_client: redis.Redis = None, check_conn: bool = True, stream_name: str = "logs",
+    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1, check_conn: bool = True, stream_name: str = "logs",
                  fields: list = None, as_pkl: bool = False, **redis_args) -> None:
         super().__init__(redis_client, check_conn, **redis_args)
 
@@ -99,9 +115,20 @@ class RedisStreamLogHandler(RedisLogHandler):
         their pickle format with the key "pkl". Otherwise we use the 
         different fields as keys and their associated valuein the record
         as the value.
+
+        If `batch_size=n`, the logs are emited by batches of size `n`.
         """
         stream_entry = _make_entry(record, self.fields, self.as_pkl)
-        self.redis.xadd(self.stream_name, stream_entry)
+        self.log_buffer.append(stream_entry)
+        self._check_buff_and_emit()
+
+    def _buffer_emit(self):
+        """Emits the logs batched in log buffer."""
+        pipe = self.redis.pipeline()
+        for log in self.log_buffer:
+            pipe.xadd(self.stream_name, log)
+        pipe.execute()
+        self.log_buffer = []
 
 
 class RedisPubSubLogHandler(RedisLogHandler):
@@ -152,9 +179,18 @@ class RedisPubSubLogHandler(RedisLogHandler):
         stream_entry = _make_entry(
             record, self.fields, self.as_pkl, raw_pkl=True)
         if self.as_pkl:
-            self.redis.publish(self.channel_name, stream_entry)
+            self.log_buffer.append(stream_entry)
         else:
-            self.redis.publish(self.channel_name, json.dumps(stream_entry))
+            self.log_buffer.append(json.dumps(stream_entry))
+        self._check_buff_and_emit()
+
+    def _buffer_emit(self):
+        """Emits the logs batched in log buffer."""
+        pipe = self.redis.pipeline()
+        for log in self.log_buffer:
+            pipe.publish(self.channel_name, log)
+        pipe.execute()
+        self.log_buffer = []
 
 
 def _make_fields(record, fields):
