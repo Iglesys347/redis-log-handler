@@ -31,7 +31,8 @@ class RedisLogHandler(logging.Handler):
         This method is intended to be implemented by subclasses and so raises a NotImplementedError.
     """
 
-    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1, check_conn: bool = True,  **redis_args) -> None:
+    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
+                 check_conn: bool = True,  **redis_args) -> None:
         super().__init__()
 
         if redis_client is not None:
@@ -58,7 +59,7 @@ class RedisLogHandler(logging.Handler):
             "emit must be implemented by RedisLogHandler subclasses")
 
     def _buffer_emit(self):
-        raise NotImplemented(
+        raise NotImplementedError(
             "_buffer_emit must be implemented by RedisLogHandler subclasses")
 
     def _check_buff_and_emit(self):
@@ -96,9 +97,10 @@ class RedisStreamLogHandler(RedisLogHandler):
     Redis streams: https://redis.io/docs/data-types/streams/
     """
 
-    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1, check_conn: bool = True, stream_name: str = "logs",
+    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
+                 check_conn: bool = True, stream_name: str = "logs",
                  fields: list = None, as_pkl: bool = False, **redis_args) -> None:
-        super().__init__(redis_client, check_conn, **redis_args)
+        super().__init__(redis_client, batch_size, check_conn, **redis_args)
 
         self.stream_name = stream_name
         self.as_pkl = as_pkl
@@ -156,9 +158,10 @@ class RedisPubSubLogHandler(RedisLogHandler):
     Redis pub/sub: https://redis.io/docs/manual/pubsub/
     """
 
-    def __init__(self, redis_client: redis.Redis = None, check_conn: bool = True, channel_name: str = "logs",
+    def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
+                 check_conn: bool = True, channel_name: str = "logs",
                  fields: list = None, as_pkl: bool = False, **redis_args) -> None:
-        super().__init__(redis_client, check_conn, **redis_args)
+        super().__init__(redis_client, batch_size, check_conn, **redis_args)
 
         self.channel_name = channel_name
         self.as_pkl = as_pkl
