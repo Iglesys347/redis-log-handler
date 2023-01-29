@@ -66,10 +66,11 @@ class RedisLogHandler(logging.Handler):
         if len(self.log_buffer) >= self.batch_size:
             self._buffer_emit()
 
-    def __del__(self):
+    def close(self):
         """Make sure to add all remaining logs in buffer to Redis before object is destroyed."""
         if self.log_buffer:
             self._buffer_emit()
+        super().close()
 
 
 class RedisStreamLogHandler(RedisLogHandler):
