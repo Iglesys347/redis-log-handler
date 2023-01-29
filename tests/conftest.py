@@ -28,6 +28,7 @@ def log_record():
 def logger():
     logging.basicConfig()
     log = logging.getLogger('test_rlh')
+    log.handlers.clear()
     log.setLevel(logging.INFO)
     return log
 
