@@ -48,6 +48,11 @@ class TestRedisLogHandler:
         with pytest.raises(NotImplementedError):
             handler.emit(log_record)
 
+    def test_buffer_emit_not_implemented(self, redis_client):
+        handler = RedisLogHandler(redis_client=redis_client)
+        with pytest.raises(NotImplementedError):
+            handler._buffer_emit()
+
 
 class TestRedisStreamLogHandler:
 
@@ -138,6 +143,64 @@ class TestRedisStreamLogHandler:
         assert data["msg"] == 'Testing my redis logger'
         assert data["levelname"] == "INFO"
 
+    def test_emit_bath(self, redis_client, logger):
+        # Create a RedisStreamLogHandler instance with batch size
+        handler = RedisStreamLogHandler(redis_client=redis_client, stream_name="test_name",
+                                        batch_size=10)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Addin only one log
+        logger.info('Testing my redis logger 0')
+
+        # Cheching that the log has been added to the bufer
+        assert len(handler.log_buffer) == 1
+        assert handler.log_buffer[0]["msg"] == 'Testing my redis logger 0'
+        assert handler.log_buffer[0]["levelname"] == "INFO"
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("test_name", "-", "+")
+        # Checking that the log has not been pushed to Redis
+        assert res == []
+
+        # Adding more logs to the handler
+        for i in range(1, 10):
+            logger.info(f'Testing my redis logger {i}')
+
+        # Checking the 10 batched logs have been emitted
+        res = redis_client.xrange("test_name", "-", "+")
+        # Checking that the logs has been pushed to Redis
+        assert res != []
+        for i, elt in enumerate(res):
+            data = elt[1]
+            assert data["msg"] == f'Testing my redis logger {i}'
+            assert data["levelname"] == "INFO"
+
+    def test_emit_bath_del(self, redis_client, logger):
+        # Create a RedisStreamLogHandler instance with batch size
+        handler = RedisStreamLogHandler(redis_client=redis_client, stream_name="test_name",
+                                        batch_size=10)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Addin only one log
+        logger.info('Testing my redis logger')
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("test_name", "-", "+")
+        # Checking that the log has not been pushed to Redis
+        assert res == []
+
+        # Closing the handler
+        handler.close()
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("test_name", "-", "+")[-1]
+        # Retrieve the data stored in Redis
+        data = res[1]
+
+        assert data["msg"] == 'Testing my redis logger'
+        assert data["levelname"] == "INFO"
 
 class TestRedisPubSubLogHandler:
 
@@ -228,3 +291,68 @@ class TestRedisPubSubLogHandler:
         # We cannot perform a deep test as we cannot retrieve the LogRecord emitted
         assert log.msg == 'Testing my redis logger'
         assert log.levelname == 'INFO'
+
+    def test_emit_bath(self, redis_client, logger):
+        # Create a RedisPubSub instance with batch size
+        handler = RedisPubSubLogHandler(redis_client=redis_client, channel_name="test_name",
+                                        batch_size=10)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Addin only one log
+        logger.info('Testing my redis logger 0')
+
+        p = redis_client.pubsub()
+        # Subscribe to channel
+        p.subscribe("test_name")
+
+        # Cheching that the log has been added to the bufer
+        assert len(handler.log_buffer) == 1
+        log = json.loads(handler.log_buffer[0])
+        # We cannot perform a deep test as we cannot retrieve the LogRecord emitted
+        assert log["msg"] == 'Testing my redis logger 0'
+        assert log["levelname"] == 'INFO'
+
+        mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
+        assert mess == None
+
+        # Adding more logs to the handler
+        for i in range(1, 10):
+            logger.info(f'Testing my redis logger {i}')
+
+        # Checking the 10 batched logs have been emitted
+        for i in range(10):
+            mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
+            # Checking that the logs has been pushed to Redis
+            assert mess is not None
+            log = json.loads(mess["data"])
+            assert log["msg"] == f'Testing my redis logger {i}'
+            assert log["levelname"] == "INFO"
+
+    def test_emit_bath_del(self, redis_client, logger):
+        # Create a RedisPubSub instance with batch size
+        handler = RedisPubSubLogHandler(redis_client=redis_client, channel_name="test_name",
+                                        batch_size=10)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Addin only one log
+        logger.info('Testing my redis logger')
+
+        p = redis_client.pubsub()
+        # Subscribe to channel
+        p.subscribe("test_name")
+
+        # Retrieve the last log saved in Redis
+        mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
+        # Checking that the log has not been pushed to Redis
+        assert mess == None
+
+        # Closing the handler
+        handler.close()
+
+        # Retrieve the last log saved in Redis
+        mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
+        log = json.loads(mess["data"])
+        assert log["msg"] == f'Testing my redis logger'
+        assert log["levelname"] == "INFO"
