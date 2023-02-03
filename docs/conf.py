@@ -30,6 +30,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'numpydoc',
     'sphinx_rtd_theme',
+    'nbsphinx',
 ]
 
 numpydoc_xref_param_type = True
