@@ -53,3 +53,4 @@ Module Documentation
    :maxdepth: 1
 
    handlers
+   examples
