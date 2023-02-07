@@ -9,3 +9,5 @@ __all__ = [
     "RedisStreamLogHandler",
     "RedisPubSubLogHandler",
 ]
+
+__version__ = "1.1.0"
