@@ -4,4 +4,5 @@ Handlers
 #########
 
 .. automodule:: rlh.handlers
+    :special-members:
     :members: 
