@@ -17,13 +17,16 @@ DEFAULT_FIELDS = [
 
 
 class RedisLogHandler(logging.Handler):
-    """
-    Default class for Redis log handlers.
+    """Default class for Redis log handlers.
 
     Attributes
     ----------
     redis : redis.Redis
         The Redis client.
+    batch_size : int
+        The batch size, if this value is > 1, logs will be processed by batches.
+    log_buffer : list
+        The list containing the batched logs.
 
     Methods
     -------
@@ -33,6 +36,24 @@ class RedisLogHandler(logging.Handler):
 
     def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
                  check_conn: bool = True,  **redis_args) -> None:
+        """Init RedisLogHandler
+
+        Parameters
+        ----------
+        redis_client : redis.Redis, optional
+            The Redis client to forward logs to, by default None.
+        batch_size : int, optional
+            The batch size, if > 1 logs will be processed by batches, by default 1.
+        check_conn : bool, optional
+            Wether to check of not if the Redis is available with a ping, by default True.
+
+        Raises
+        ------
+        TypeError
+            Raised if one of the aditional argument passed to Redis is invalid.
+        ConnectionError
+            Raised if the Redis DB is unavailable.
+        """
         super().__init__()
 
         if redis_client is not None:
@@ -74,13 +95,16 @@ class RedisLogHandler(logging.Handler):
 
 
 class RedisStreamLogHandler(RedisLogHandler):
-    """
-    Handler used to forward logs to a Redis stream.
+    """Handler used to forward logs to a Redis stream.
 
     Attributes
     ----------
     redis : redis.Redis
         The Redis client.
+    batch_size : int
+        The batch size, if this value is > 1, logs will be processed by batches.
+    log_buffer : list
+        The list containing the batched logs.
     stream_name : str
         The name of the Redis stream.
     fields : list(str)
@@ -101,6 +125,23 @@ class RedisStreamLogHandler(RedisLogHandler):
     def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
                  check_conn: bool = True, stream_name: str = "logs",
                  fields: list = None, as_pkl: bool = False, **redis_args) -> None:
+        """Init RedisStreamLogHandler
+
+        Parameters
+        ----------
+        redis_client : redis.Redis, optional
+            The Redis client to forward logs to, by default None.
+        batch_size : int, optional
+            The batch size, if > 1 logs will be processed by batches, by default 1.
+        check_conn : bool, optional
+            Wether to check of not if the Redis is available with a ping, by default True.
+        stream_name : str, optional
+            The name of the Redis stream where the logs are stored, by default "logs".
+        fields : list, optional
+            The list of logs fields to save, by default None.
+        as_pkl : bool, optional
+            Wether to save the log as its pickle format or not, by default False.
+        """
         super().__init__(redis_client, batch_size, check_conn, **redis_args)
 
         self.stream_name = stream_name
@@ -109,8 +150,7 @@ class RedisStreamLogHandler(RedisLogHandler):
         self.fields = fields if fields is not None else DEFAULT_FIELDS
 
     def emit(self, record: logging.LogRecord):
-        """
-        Write the log record in the Redis stream.
+        """Write the log record in the Redis stream.
 
         Every time a log is emitted, an entry is inserted in the stream.
         This entry is a dict whose format depends on the handler
@@ -120,6 +160,11 @@ class RedisStreamLogHandler(RedisLogHandler):
         as the value.
 
         If `batch_size=n`, the logs are emited by batches of size `n`.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            The log record to emit.
         """
         stream_entry = _make_entry(record, self.fields, self.as_pkl)
         self.log_buffer.append(stream_entry)
@@ -135,13 +180,16 @@ class RedisStreamLogHandler(RedisLogHandler):
 
 
 class RedisPubSubLogHandler(RedisLogHandler):
-    """
-    Handler used to publish logs to a Redis pub/sub channel.
+    """Handler used to publish logs to a Redis pub/sub channel.
 
     Attributes
     ----------
     redis : redis.Redis
         The Redis client.
+    batch_size : int
+        The batch size, if this value is > 1, logs will be processed by batches.
+    log_buffer : list
+        The list containing the batched logs.
     channel_name : str
         The name of the Redis pub/sub channel.
     fields : list(str)
@@ -162,6 +210,23 @@ class RedisPubSubLogHandler(RedisLogHandler):
     def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
                  check_conn: bool = True, channel_name: str = "logs",
                  fields: list = None, as_pkl: bool = False, **redis_args) -> None:
+        """Init RedisPubSubLogHandler
+
+        Parameters
+        ----------
+        redis_client : redis.Redis, optional
+            The Redis client to forward logs to, by default None.
+        batch_size : int, optional
+            The batch size, if > 1 logs will be processed by batches, by default 1.
+        check_conn : bool, optional
+            Wether to check of not if the Redis is available with a ping, by default True.
+        channel_name : str, optional
+            The name of the Redis pub/sub channel where the logs are pushed, by default "logs".
+        fields : list, optional
+            The list of logs fields to save, by default None.
+        as_pkl : bool, optional
+            Wether to save the log as its pickle format or not, by default False.
+        """
         super().__init__(redis_client, batch_size, check_conn, **redis_args)
 
         self.channel_name = channel_name
@@ -170,8 +235,7 @@ class RedisPubSubLogHandler(RedisLogHandler):
         self.fields = fields if fields is not None else DEFAULT_FIELDS
 
     def emit(self, record: logging.LogRecord):
-        """
-        Publish the log record in the Redis pub/sub channel.
+        """Publish the log record in the Redis pub/sub channel.
 
         Every time a log is emitted, an entry is published on the channel.
         This entry is encoded as JSON whose format depends on the handler
@@ -179,6 +243,11 @@ class RedisPubSubLogHandler(RedisLogHandler):
         their pickle format with the key "pkl". Otherwise we use the
         different fields as keys and their associated value in the record
         as the value (default fields are used if not specified).
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            The log record to emit.
         """
         stream_entry = _make_entry(
             record, self.fields, self.as_pkl, raw_pkl=True)
@@ -198,8 +267,7 @@ class RedisPubSubLogHandler(RedisLogHandler):
 
 
 def _make_fields(record, fields):
-    """
-    Return the fields dict for the log record.
+    """Return the fields dict for the log record.
 
     If all the specified fields are invalid, use the default fields.
     """
@@ -213,6 +281,7 @@ def _make_fields(record, fields):
 
 
 def _make_entry(record, fields, as_pkl, raw_pkl=False):
+    """Format the log entry."""
     if as_pkl:
         if raw_pkl:
             return pickle.dumps(record)
