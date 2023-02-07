@@ -2,8 +2,8 @@
 
 Log handler to forward logs to Redis.
 
-| [Installation](#installation) | [Usage](#usage) | [Handler classes](#handlers-classes) |
-| :---------------------------: | :-------------: | :----------------------------------: |
+| [Installation](#installation) | [Usage](#usage) | [Handler classes](#handlers-classes) | [Documentation](https://redis-log-handler.readthedocs.io/en/stable/) |
+| :---------------------------: | :-------------: | :----------------------------------: | :------------------------------------------------------------------: |
 
 ## Installation
 
