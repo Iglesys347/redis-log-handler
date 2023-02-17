@@ -124,6 +124,7 @@ class RedisStreamLogHandler(RedisLogHandler):
 
     def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
                  check_conn: bool = True, stream_name: str = "logs",
+                 maxlen: int = None, approximate: bool = True, 
                  fields: list = None, as_pkl: bool = False, **redis_args) -> None:
         """Init RedisStreamLogHandler
 
@@ -137,14 +138,25 @@ class RedisStreamLogHandler(RedisLogHandler):
             Wether to check of not if the Redis is available with a ping, by default True.
         stream_name : str, optional
             The name of the Redis stream where the logs are stored, by default "logs".
+        maxlen : int, optional
+            The maximum lenght of the Redis stream, if 0 no limit applied, by default 0.
+        approximate : bool, optional
+            If True, the Redis size won't be exactly equals to `maxlen`, but will be at least
+            `maxlen`, by default True.
         fields : list, optional
             The list of logs fields to save, by default None.
         as_pkl : bool, optional
             Wether to save the log as its pickle format or not, by default False.
+
+        Notes
+        -----
+        More info about Redis caped stream: https://redis.io/docs/data-types/streams-tutorial/#capped-streams
         """
         super().__init__(redis_client, batch_size, check_conn, **redis_args)
 
         self.stream_name = stream_name
+        self.maxlen = maxlen
+        self.approximate = approximate
         self.as_pkl = as_pkl
 
         self.fields = fields if fields is not None else DEFAULT_FIELDS
@@ -174,7 +186,7 @@ class RedisStreamLogHandler(RedisLogHandler):
         """Emits the logs batched in log buffer."""
         pipe = self.redis.pipeline()
         for log in self.log_buffer:
-            pipe.xadd(self.stream_name, log)
+            pipe.xadd(self.stream_name, log, maxlen=self.maxlen, approximate=self.approximate)
         pipe.execute()
         self.log_buffer = []
 
