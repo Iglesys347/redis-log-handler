@@ -169,7 +169,7 @@ class TestRedisStreamLogHandler:
 
         # Adding more logs to the handler
         for i in range(1, 10):
-            logger.info(f'Testing my redis logger {i}')
+            logger.info('Testing my redis logger %s', i)
 
         # Checking the 10 batched logs have been emitted
         res = redis_client.xrange("test_name", "-", "+")
@@ -215,7 +215,7 @@ class TestRedisStreamLogHandler:
         logger.addHandler(handler)
         # Adding 10 logs
         for i in range(10):
-            logger.info(f'Testing my redis logger {i}')
+            logger.info('Testing my redis logger %s', i)
 
         # Checking that the Redis stream size is equals to maxlen (5)
         assert redis_client.xlen("test_name") == 5
@@ -229,7 +229,7 @@ class TestRedisStreamLogHandler:
         logger.addHandler(handler)
         # Adding 10 logs
         for i in range(10):
-            logger.info(f'Testing my redis logger {i}')
+            logger.info('Testing my redis logger %s', i)
 
         # Checking that the Redis stream contains at least 5 element
         assert redis_client.xlen("test_name") >= 5
@@ -350,7 +350,7 @@ class TestRedisPubSubLogHandler:
 
         # Adding more logs to the handler
         for i in range(1, 10):
-            logger.info(f'Testing my redis logger {i}')
+            logger.info('Testing my redis logger %s', i)
 
         # Checking the 10 batched logs have been emitted
         for i in range(10):
@@ -386,5 +386,5 @@ class TestRedisPubSubLogHandler:
         # Retrieve the last log saved in Redis
         mess = p.get_message(ignore_subscribe_messages=True, timeout=10)
         log = json.loads(mess["data"])
-        assert log["msg"] == f'Testing my redis logger'
+        assert log["msg"] == 'Testing my redis logger'
         assert log["levelname"] == "INFO"
