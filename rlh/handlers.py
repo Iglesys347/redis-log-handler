@@ -289,6 +289,10 @@ def _make_fields(record, fields):
     if field_dict == {}:
         return {field: getattr(record, field)
                 for field in DEFAULT_FIELDS if hasattr(record, field)}
+
+    if "msg" in field_dict:
+        field_dict["msg"] = record.getMessage()
+
     return field_dict
 
 
