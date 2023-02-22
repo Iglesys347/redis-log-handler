@@ -61,15 +61,19 @@ class TestRedisStreamLogHandler:
         handler = RedisStreamLogHandler()
         # Assert that the attributes of the handler are set
         assert handler.stream_name == "logs"
+        assert handler.maxlen == None
+        assert handler.approximate
         assert handler.fields == DEFAULT_FIELDS
         assert not handler.as_pkl
 
     def test_init_custom_params(self):
         # Create a RedisStreamLogHandler instance with custom fields
-        handler = RedisStreamLogHandler(stream_name="test", fields=["lineno", "module"],
-                                        as_pkl=True)
+        handler = RedisStreamLogHandler(stream_name="test", maxlen=10, approximate=False,
+                                        fields=["lineno", "module"], as_pkl=True)
         # Assert that the attributes of the handler is correctly set
         assert handler.stream_name == "test"
+        assert handler.maxlen == 10
+        assert not handler.approximate
         assert handler.fields == ["lineno", "module"]
         assert handler.as_pkl
 
@@ -201,6 +205,34 @@ class TestRedisStreamLogHandler:
 
         assert data["msg"] == 'Testing my redis logger'
         assert data["levelname"] == "INFO"
+
+    def test_emit_stream_maxlen(self, redis_client, logger):
+        # Create a RedisStreamLogHandler instance with fixed maxlen = 5
+        handler = RedisStreamLogHandler(redis_client=redis_client, stream_name="test_name",
+                                        maxlen=5, approximate=False)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Adding 10 logs
+        for i in range(10):
+            logger.info(f'Testing my redis logger {i}')
+
+        # Checking that the Redis stream size is equals to maxlen (5)
+        assert redis_client.xlen("test_name") == 5
+
+    def test_emit_stream_approximate_maxlen(self, redis_client, logger):
+        # Create a RedisStreamLogHandler instance with approximate maxlen = 5
+        handler = RedisStreamLogHandler(redis_client=redis_client, stream_name="test_name",
+                                        maxlen=5, approximate=True)
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Adding 10 logs
+        for i in range(10):
+            logger.info(f'Testing my redis logger {i}')
+
+        # Checking that the Redis stream contains at least 5 element
+        assert redis_client.xlen("test_name") >= 5
 
 class TestRedisPubSubLogHandler:
 
