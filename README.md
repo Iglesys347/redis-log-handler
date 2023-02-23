@@ -129,8 +129,6 @@ handler = RedisStreamLogHandler(as_json=True)
 logger.addHandler(handler)
 ```
 
-This can be useful if you need to re-use the logs with another python program.
-
 ## Handlers classes
 
 Currently `rlh` implements two classes of handlers:
