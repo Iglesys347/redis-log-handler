@@ -8,7 +8,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords=["Redis", "logging"],
     license="MIT",
-    version="1.1.0",
+    version="1.2.0",
     packages=find_packages(
         include=[
             "rlh",
