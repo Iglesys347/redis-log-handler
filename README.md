@@ -113,7 +113,7 @@ handler = RedisStreamLogHandler(as_pkl=True)
 logger.addHandler(handler)
 ```
 
-### Save `LogRecord` as pickle format
+### Save `LogRecord` as JSON
 
 Logs can also be saved in DB as their JSON representation:
 
