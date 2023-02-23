@@ -128,6 +128,29 @@ class TestRedisStreamLogHandler:
         assert log.msg == 'Testing my redis logger'
         assert log.levelname == 'INFO'
 
+    def test_emit_as_json(self, redis_client, logger):
+        # Create a RedisStreamLogHandler instance with as_pkl argument
+        handler = RedisStreamLogHandler(redis_client=redis_client,
+                                        as_json=True, stream_name="test_logs")
+
+        # Add the handler to the logger
+        logger.addHandler(handler)
+        # Testing log
+        logger.info('Testing my redis logger with JSON')
+
+        # Retrieve the last log saved in Redis
+        res = redis_client.xrange("test_logs", "-", "+")[-1]
+
+        # Retrieve the data stored in Redis
+        data = res[1]
+
+        # Load the pickle log
+        log = json.loads(data["json"])
+
+        # We cannot perform a deep test as we cannot retrieve the LogRecord emitted
+        assert log["msg"] == 'Testing my redis logger with JSON'
+        assert log["levelname"] == 'INFO'
+
     def test_emit_custom_stream_name(self, redis_client, logger):
         # Create a RedisStreamLogHandler instance with custom stream_name
         handler = RedisStreamLogHandler(redis_client=redis_client,

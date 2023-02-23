@@ -111,6 +111,8 @@ class RedisStreamLogHandler(RedisLogHandler):
         The list of logs fields to forward.
     as_pkl : bool
         If true, the logs are written as pickle format in the stream.
+    as_json : bool
+        If true, the logs are written as JSON in the stream.
 
     Methods
     -------
@@ -125,7 +127,8 @@ class RedisStreamLogHandler(RedisLogHandler):
     def __init__(self, redis_client: redis.Redis = None, batch_size: int = 1,
                  check_conn: bool = True, stream_name: str = "logs",
                  maxlen: int = None, approximate: bool = True, 
-                 fields: list = None, as_pkl: bool = False, **redis_args) -> None:
+                 fields: list = None, as_pkl: bool = False, as_json: bool = False,
+                 **redis_args) -> None:
         """Init RedisStreamLogHandler
 
         Parameters
@@ -147,6 +150,8 @@ class RedisStreamLogHandler(RedisLogHandler):
             The list of logs fields to save, by default None.
         as_pkl : bool, optional
             Wether to save the log as its pickle format or not, by default False.
+        as_json : bool, optional
+            Wether to save the log as JSON format or not, by default False.
 
         Notes
         -----
@@ -158,6 +163,7 @@ class RedisStreamLogHandler(RedisLogHandler):
         self.maxlen = maxlen
         self.approximate = approximate
         self.as_pkl = as_pkl
+        self.as_json = as_json
 
         self.fields = fields if fields is not None else DEFAULT_FIELDS
 
@@ -166,10 +172,13 @@ class RedisStreamLogHandler(RedisLogHandler):
 
         Every time a log is emitted, an entry is inserted in the stream.
         This entry is a dict whose format depends on the handler
-        attributes. If `as_pkl` is set to true, the records are saved as
-        their pickle format with the key "pkl". Otherwise we use the 
-        different fields as keys and their associated valuein the record
-        as the value.
+        attributes.
+        
+        If `as_pkl` is set to true, the records are saved as
+        their pickle format with the key "pkl". If `as_json` is set to true,
+        the records are saved as their JSON representation with the key "json".
+        Otherwise we use the different fields as keys and their associated value
+        in the record as the value.
 
         If `batch_size=n`, the logs are emited by batches of size `n`.
 
@@ -178,7 +187,7 @@ class RedisStreamLogHandler(RedisLogHandler):
         record : logging.LogRecord
             The log record to emit.
         """
-        stream_entry = _make_entry(record, self.fields, self.as_pkl)
+        stream_entry = _make_entry(record, self.fields, self.as_pkl, self.as_json)
         self.log_buffer.append(stream_entry)
         self._check_buff_and_emit()
 
@@ -207,7 +216,7 @@ class RedisPubSubLogHandler(RedisLogHandler):
     fields : list(str)
         The list of logs fields to forward.
     as_pkl : bool
-        If true, the logs are written as pickle format in the stream.
+        If true, the logs are written as pickle format in the message.
 
     Methods
     -------
@@ -261,12 +270,12 @@ class RedisPubSubLogHandler(RedisLogHandler):
         record : logging.LogRecord
             The log record to emit.
         """
-        stream_entry = _make_entry(
-            record, self.fields, self.as_pkl, raw_pkl=True)
+        log_entry = _make_entry(record, self.fields, self.as_pkl,
+                                raw_pkl=True)
         if self.as_pkl:
-            self.log_buffer.append(stream_entry)
+            self.log_buffer.append(log_entry)
         else:
-            self.log_buffer.append(json.dumps(stream_entry))
+            self.log_buffer.append(json.dumps(log_entry))
         self._check_buff_and_emit()
 
     def _buffer_emit(self):
@@ -296,10 +305,12 @@ def _make_fields(record, fields):
     return field_dict
 
 
-def _make_entry(record, fields, as_pkl, raw_pkl=False):
+def _make_entry(record, fields, as_pkl, as_json=False, raw_pkl=False):
     """Format the log entry."""
     if as_pkl:
         if raw_pkl:
             return pickle.dumps(record)
         return {"pkl": pickle.dumps(record)}
+    if as_json:
+        return {"json": json.dumps(_make_fields(record, fields))}
     return _make_fields(record, fields)
