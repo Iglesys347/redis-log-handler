@@ -107,8 +107,24 @@ from rlh import RedisStreamLogHandler
 # define your logger
 logger = logging.getLogger('my_app')
 
-# define the Redis log handler with custom fields
+# define the Redis log handler with as_pkl set to True
 handler = RedisStreamLogHandler(as_pkl=True)
+# add the handler to the logger
+logger.addHandler(handler)
+```
+
+### Save `LogRecord` as pickle format
+
+Logs can also be saved in DB as their JSON representation:
+
+```python
+from rlh import RedisStreamLogHandler
+
+# define your logger
+logger = logging.getLogger('my_app')
+
+# define the Redis log handler with ad_json set to True
+handler = RedisStreamLogHandler(as_json=True)
 # add the handler to the logger
 logger.addHandler(handler)
 ```
