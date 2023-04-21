@@ -2,6 +2,8 @@
 
 Log handler to forward logs to Redis.
 
+An example porject using this module: [sw-logs](https://github.com/Iglesys347/sw-logs)
+
 | [Installation](#installation) | [Usage](#usage) | [Handler classes](#handlers-classes) | [Documentation](https://redis-log-handler.readthedocs.io/en/stable/) |
 | :---------------------------: | :-------------: | :----------------------------------: | :------------------------------------------------------------------: |
 
